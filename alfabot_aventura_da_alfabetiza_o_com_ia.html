@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AlfaBot: Aventura da Alfabetização com IA</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(135deg, #ecfdf5 0%, #e0f2fe 50%, #fef3c7 100%);
+      min-height: 100vh;
+      user-select: none;
+    }
+    .font-kids {
+      font-family: 'Fredoka', cursive, sans-serif;
+    }
+    .bounce-gentle {
+      animation: bounceGentle 2.5s infinite ease-in-out;
+    }
+    @keyframes bounceGentle {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .pop-in {
+      animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes popIn {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .syllable-tile {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .syllable-tile:hover {
+      transform: translateY(-4px) scale(1.05);
+    }
+    .syllable-tile:active {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body class="p-3 md:p-6 text-slate-800">
+
+  <!-- Top Bar / Header Gamificado -->
+  <header class="max-w-5xl mx-auto bg-white/90 backdrop-blur-md rounded-3xl p-4 shadow-lg border-2 border-indigo-100 flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div class="flex items-center gap-3">
+      <div class="w-14 h-14 bg-gradient-to-tr from-sky-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-md shadow-indigo-200">
+        <i class="fa-solid fa-robot bounce-gentle"></i>
+      </div>
+      <div>
+        <h1 class="font-kids text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-600 to-sky-600 bg-clip-text text-transparent leading-none">
+          AlfaBot IA
+        </h1>
+        <p class="text-xs md:text-sm font-semibold text-slate-500 mt-1">O seu robô amigo da alfabetização</p>
+      </div>
+    </div>
+
+    <!-- Indicadores Gamificados (Estrelas, Nível e Áudio) -->
+    <div class="flex items-center gap-3 md:gap-6">
+      <div class="bg-amber-100 border border-amber-300 px-4 py-2 rounded-2xl flex items-center gap-2 text-amber-900 font-bold shadow-sm">
+        <i class="fa-solid fa-star text-amber-500 text-xl animate-pulse"></i>
+        <span id="starScore" class="font-kids text-2xl">0</span>
+        <span class="text-xs font-semibold uppercase tracking-wider text-amber-700">Estrelas</span>
+      </div>
+
+      <button id="toggleAudioBtn" onclick="toggleAudioSpeech()" title="Ativar/Desativar Som da Voz" class="w-12 h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 border border-slate-300 flex items-center justify-center text-indigo-700 text-xl transition">
+        <i id="audioIcon" class="fa-solid fa-volume-high"></i>
+      </button>
+
+      <button onclick="openTeacherGuideModal()" class="px-4 py-2 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 font-bold text-sm flex items-center gap-2 transition">
+        <i class="fa-solid fa-chalkboard-user"></i>
+        <span class="hidden sm:inline">Guia do Professor</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Container Principal -->
+  <main class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- Coluna Esquerda: O Assistente AlfaBot com Interação Contínua -->
+    <aside class="lg:col-span-4 bg-white/95 rounded-3xl p-5 shadow-lg border-2 border-indigo-100 flex flex-col items-center text-center">
+      <div class="relative w-36 h-36 mb-3">
+        <div id="botOrb" class="w-full h-full rounded-3xl bg-gradient-to-b from-sky-400 via-indigo-500 to-purple-600 p-2 shadow-xl flex items-center justify-center relative overflow-hidden transition-all duration-300">
+          <!-- Rostinho do Robô -->
+          <div class="w-full h-full bg-slate-900 rounded-2xl flex flex-col items-center justify-center p-3 relative">
+            <div class="flex gap-4 mb-2">
+              <div id="botEyeLeft" class="w-5 h-5 bg-cyan-400 rounded-full shadow-[0_0_12px_#38bdf8] transition-all duration-200"></div>
+              <div id="botEyeRight" class="w-5 h-5 bg-cyan-400 rounded-full shadow-[0_0_12px_#38bdf8] transition-all duration-200"></div>
+            </div>
+            <div id="botMouth" class="w-8 h-2 bg-cyan-300 rounded-full transition-all duration-300"></div>
+            <div class="absolute -top-1 right-2 w-3 h-3 bg-emerald-400 rounded-full animate-ping"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Balão de Fala do Robô -->
+      <div class="w-full bg-slate-50 border-2 border-indigo-200 rounded-2xl p-4 relative mb-4 shadow-sm">
+        <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-50 border-t-2 border-l-2 border-indigo-200 rotate-45"></div>
+        <p id="botSpeechText" class="font-kids text-lg text-slate-800 leading-snug">
+          Olá, amiguinho! Sou o <b>AlfaBot</b>. Escolha uma missão para começarmos nossa jornada pelas letras!
+        </p>
+        <button onclick="speakCurrentBotMessage()" class="mt-2 text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center justify-center gap-1 mx-auto bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition">
+          <i class="fa-solid fa-play"></i> Ouvir Novamente
+        </button>
+      </div>
+
+      <!-- Seletor de Missões / Modos do Jogo -->
+      <div class="w-full space-y-2 font-kids">
+        <button onclick="switchMode('syllables')" id="nav-syllables" class="w-full py-3 px-4 rounded-2xl bg-indigo-600 text-white font-bold flex items-center justify-between text-left shadow-md transition transform active:scale-95">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-cubes text-xl text-yellow-300"></i>
+            1. Fábrica de Sílabas
+          </span>
+          <i class="fa-solid fa-chevron-right text-xs"></i>
+        </button>
+
+        <button onclick="switchMode('promptMagic')" id="nav-promptMagic" class="w-full py-3 px-4 rounded-2xl bg-white hover:bg-indigo-50 border-2 border-indigo-200 text-slate-700 font-bold flex items-center justify-between text-left transition transform active:scale-95">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-wand-magic-sparkles text-xl text-indigo-500"></i>
+            2. O Prompt Mágico
+          </span>
+          <i class="fa-solid fa-chevron-right text-xs"></i>
+        </button>
+
+        <button onclick="switchMode('rhymeDetective')" id="nav-rhymeDetective" class="w-full py-3 px-4 rounded-2xl bg-white hover:bg-indigo-50 border-2 border-indigo-200 text-slate-700 font-bold flex items-center justify-between text-left transition transform active:scale-95">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-magnifying-glass text-xl text-emerald-500"></i>
+            3. Detetive das Rimas
+          </span>
+          <i class="fa-solid fa-chevron-right text-xs"></i>
+        </button>
+
+        <button onclick="switchMode('exploreWord')" id="nav-exploreWord" class="w-full py-3 px-4 rounded-2xl bg-white hover:bg-indigo-50 border-2 border-indigo-200 text-slate-700 font-bold flex items-center justify-between text-left transition transform active:scale-95">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-brain text-xl text-rose-500"></i>
+            4. Laboratório da Palavra
+          </span>
+          <i class="fa-solid fa-chevron-right text-xs"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Coluna Direita: Área Interativa da Missão Atual -->
+    <section class="lg:col-span-8 bg-white/95 rounded-3xl p-6 md:p-8 shadow-lg border-2 border-indigo-100 min-h-[560px] flex flex-col justify-between">
+      
+      <!-- ================= MODO 1: FÁBRICA DE SÍLABAS ================= -->
+      <div id="mode-syllables" class="mission-mode space-y-6">
+        <div class="flex items-center justify-between border-b pb-3 border-slate-100">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">Missão Fonológica</span>
+            <h2 class="font-kids text-2xl font-bold text-slate-800 mt-1">Monte a Palavra Correta!</h2>
+          </div>
+          <span id="syllableProgressBadge" class="text-sm font-bold text-slate-500">Desafio 1 de 6</span>
+        </div>
+
+        <!-- Card de Desafio com Imagem e Pista -->
+        <div class="bg-gradient-to-r from-sky-50 to-indigo-50 border-2 border-indigo-100 rounded-3xl p-6 text-center flex flex-col items-center">
+          <div id="targetEmoji" class="text-7xl mb-2 filter drop-shadow">🐶</div>
+          <p id="targetHint" class="text-lg md:text-xl font-bold text-indigo-900 mb-2">"É o melhor amigo do ser humano e late!"</p>
+          <button onclick="speakWord(currentSyllableGame.word)" class="px-4 py-2 bg-white hover:bg-slate-100 text-indigo-700 border border-indigo-200 rounded-full text-sm font-bold shadow-sm flex items-center gap-2 transition">
+            <i class="fa-solid fa-volume-high"></i> Ouvir o Som da Palavra
+          </button>
+        </div>
+
+        <!-- Área onde as sílabas são encaixadas pelo aluno -->
+        <div class="space-y-2">
+          <label class="block text-center text-sm font-bold text-slate-500 uppercase tracking-wider">Espaço de Construção:</label>
+          <div id="dropZone" class="flex justify-center items-center gap-3 min-h-[84px] bg-slate-100 border-2 border-dashed border-indigo-300 rounded-2xl p-3">
+            <!-- Sílabas selecionadas vão aparecer aqui -->
+            <span class="text-slate-400 font-semibold text-sm">Clique nas sílabas abaixo na ordem certa!</span>
+          </div>
+        </div>
+
+        <!-- Banco de Sílabas para clicar -->
+        <div class="space-y-2">
+          <label class="block text-center text-sm font-bold text-slate-500 uppercase tracking-wider">Sílabas Disponíveis:</label>
+          <div id="syllablesBank" class="flex flex-wrap justify-center gap-3">
+            <!-- Gerado via JS -->
+          </div>
+        </div>
+
+        <!-- Controles de Ação -->
+        <div class="flex justify-center gap-4 pt-2">
+          <button onclick="resetCurrentSyllable()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold font-kids transition flex items-center gap-2">
+            <i class="fa-solid fa-rotate-left"></i> Limpar
+          </button>
+          <button onclick="checkSyllableAnswer()" class="px-8 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold font-kids text-lg shadow-md shadow-indigo-200 transition transform active:scale-95 flex items-center gap-2">
+            <i class="fa-solid fa-check"></i> Verificar com AlfaBot!
+          </button>
+        </div>
+      </div>
+
+      <!-- ================= MODO 2: O PROMPT MÁGICO (IA MIRIM) ================= -->
+      <div id="mode-promptMagic" class="mission-mode hidden space-y-6">
+        <div class="border-b pb-3 border-slate-100">
+          <span class="text-xs font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-3 py-1 rounded-full">Letramento em IA & Produção Textual</span>
+          <h2 class="font-kids text-2xl font-bold text-slate-800 mt-1">O Construtor de Prompt com IA!</h2>
+          <p class="text-sm text-slate-600 mt-1">Na inteligência artificial, você ensina o computador combinando palavras. Monte seu prompt para o AlfaBot criar um miniconto ilustrado!</p>
+        </div>
+
+        <!-- Seletores de Blocos de Comando (Prompt Engineering Lúdico) -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <!-- Bloco 1: Personagem -->
+          <div class="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4">
+            <span class="text-xs font-black uppercase text-indigo-700">1. Quem é o Herói?</span>
+            <select id="promptHero" onchange="updatePromptPreview()" class="w-full mt-2 p-2.5 rounded-xl bg-white border border-indigo-200 font-bold text-slate-700 focus:ring-2 focus:ring-indigo-400 outline-none">
+              <option value="Um robô curioso">🤖 Um robô curioso</option>
+              <option value="Uma gatinha astronauta">🐱 Uma gatinha astronauta</option>
+              <option value="Um dinossauro gentil">🦖 Um dinossauro gentil</option>
+              <option value="Um macaco inventor">🐒 Um macaco inventor</option>
+            </select>
+          </div>
+
+          <!-- Bloco 2: Ação -->
+          <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl p-4">
+            <span class="text-xs font-black uppercase text-amber-700">2. O que ele faz?</span>
+            <select id="promptAction" onchange="updatePromptPreview()" class="w-full mt-2 p-2.5 rounded-xl bg-white border border-amber-200 font-bold text-slate-700 focus:ring-2 focus:ring-amber-400 outline-none">
+              <option value="procura letras mágicas">🔎 procura letras mágicas</option>
+              <option value="planta árvores de livros">🌳 planta árvores de livros</option>
+              <option value="aprende a programar">💻 aprende a programar</option>
+              <option value="constrói uma nave de brinquedo">🚀 constrói uma nave de brinquedo</option>
+            </select>
+          </div>
+
+          <!-- Bloco 3: Lugar -->
+          <div class="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4">
+            <span class="text-xs font-black uppercase text-emerald-700">3. Em qual lugar?</span>
+            <select id="promptPlace" onchange="updatePromptPreview()" class="w-full mt-2 p-2.5 rounded-xl bg-white border border-emerald-200 font-bold text-slate-700 focus:ring-2 focus:ring-emerald-400 outline-none">
+              <option value="numa floresta encantada.">🌲 numa floresta encantada.</option>
+              <option value="na lua cheia.">🌙 na lua cheia.</option>
+              <option value="na escola do futuro.">🏫 na escola do futuro.</option>
+              <option value="dentro de um arco-íris.">🌈 dentro de um arco-íris.</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Visualizador do Prompt Montado -->
+        <div class="bg-slate-900 text-slate-200 rounded-2xl p-4 font-mono text-sm shadow-inner flex items-center justify-between gap-3">
+          <div>
+            <span class="text-indigo-400 font-bold text-xs uppercase tracking-widest block mb-1">Seu Comando (Prompt):</span>
+            <p id="promptPreviewText" class="text-base text-amber-300 font-semibold">"Um robô curioso procura letras mágicas numa floresta encantada."</p>
+          </div>
+          <button onclick="generateAIPromptStory()" class="px-5 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold font-kids flex items-center gap-2 shadow-md transition transform active:scale-95 whitespace-nowrap">
+            <i class="fa-solid fa-sparkles"></i> Gerar com IA!
+          </button>
+        </div>
+
+        <!-- Área de Exibição do Miniconto com Leitura Guiada (Karaokê) -->
+        <div id="aiStoryResult" class="bg-purple-50/70 border-2 border-purple-200 rounded-3xl p-6 text-center space-y-4">
+          <div id="storyVisualBadge" class="text-6xl animate-bounce">✨</div>
+          <h3 id="storyTitle" class="font-kids text-2xl font-bold text-purple-900">Clique em "Gerar com IA" para criar sua história!</h3>
+          <p id="storyBody" class="text-lg md:text-xl text-slate-700 leading-relaxed max-w-2xl mx-auto font-medium">
+            O AlfaBot vai inventar uma história rimada com as palavras que você escolheu no seu prompt e ler cada frase em voz alta para você treinar sua leitura!
+          </p>
+          <div class="pt-2 flex justify-center gap-3">
+            <button id="readStoryBtn" onclick="readFullStory()" class="px-6 py-2.5 rounded-full bg-purple-600 text-white font-bold text-sm shadow hover:bg-purple-700 transition flex items-center gap-2 hidden">
+              <i class="fa-solid fa-headphones"></i> Ouvir Leitura do AlfaBot
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= MODO 3: DETETIVE DAS RIMAS ================= -->
+      <div id="mode-rhymeDetective" class="mission-mode hidden space-y-6">
+        <div class="flex items-center justify-between border-b pb-3 border-slate-100">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">Consciência Fonológica</span>
+            <h2 class="font-kids text-2xl font-bold text-slate-800 mt-1">Qual Palavra Rima?</h2>
+          </div>
+          <span id="rhymeProgressBadge" class="text-sm font-bold text-slate-500">Nível 1 de 5</span>
+        </div>
+
+        <div class="bg-emerald-50 border-2 border-emerald-200 rounded-3xl p-6 text-center">
+          <p class="text-sm font-bold text-emerald-700 uppercase tracking-widest mb-2">A palavra-chave do AlfaBot é:</p>
+          <div class="flex items-center justify-center gap-3">
+            <span id="rhymeBaseEmoji" class="text-6xl">🦁</span>
+            <span id="rhymeBaseWord" class="font-kids text-4xl font-extrabold text-emerald-950">LEÃO</span>
+          </div>
+          <button onclick="speakWord(currentRhymeGame.baseWord)" class="mt-3 px-4 py-1.5 bg-white text-emerald-700 border border-emerald-300 rounded-full text-xs font-bold shadow-sm inline-flex items-center gap-1.5">
+            <i class="fa-solid fa-volume-high"></i> Ouvir Som da Palavra
+          </button>
+        </div>
+
+        <p class="text-center font-bold text-slate-600 text-base">Clique na palavra que tem o <u>mesmo som final</u> (rima):</p>
+
+        <!-- Opções de Rima -->
+        <div id="rhymeOptionsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-4 font-kids">
+          <!-- Gerado via JS -->
+        </div>
+
+        <div id="rhymeFeedback" class="text-center font-bold text-lg min-h-[30px]"></div>
+      </div>
+
+      <!-- ================= MODO 4: LABORATÓRIO DA PALAVRA ================= -->
+      <div id="mode-exploreWord" class="mission-mode hidden space-y-6">
+        <div class="border-b pb-3 border-slate-100">
+          <span class="text-xs font-bold uppercase tracking-wider text-rose-600 bg-rose-50 px-3 py-1 rounded-full">Análise Linguística com IA</span>
+          <h2 class="font-kids text-2xl font-bold text-slate-800 mt-1">O Laboratório da Palavra</h2>
+          <p class="text-sm text-slate-600">Escreva qualquer palavra e veja o AlfaBot desmontar suas letras, contar sílabas e criar uma missão secreta!</p>
+        </div>
+
+        <!-- Campo de Entrada -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input type="text" id="customWordInput" placeholder="Digite uma palavra (ex: BORBOLETA, ESCOLA, AMOR)..." class="flex-grow p-4 text-xl rounded-2xl border-2 border-rose-200 focus:border-rose-500 font-kids uppercase tracking-wider outline-none shadow-sm">
+          <button onclick="analyzeCustomWord()" class="px-6 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl font-bold font-kids text-lg shadow-md shadow-rose-200 transition flex items-center justify-center gap-2 whitespace-nowrap">
+            <i class="fa-solid fa-microscope"></i> Analisar com IA
+          </button>
+        </div>
+
+        <!-- Resultados da Análise -->
+        <div id="wordAnalysisCard" class="bg-gradient-to-r from-rose-50 to-orange-50 border-2 border-rose-200 rounded-3xl p-6 hidden space-y-5">
+          <div class="flex items-center justify-between border-b border-rose-200 pb-3">
+            <span id="analyzedWordTitle" class="font-kids text-3xl font-extrabold text-rose-900 tracking-wider">PALAVRA</span>
+            <button onclick="speakAnalyzedWord()" class="px-4 py-2 bg-white text-rose-700 rounded-full font-bold text-xs border border-rose-300 shadow-sm flex items-center gap-2">
+              <i class="fa-solid fa-volume-high"></i> Soletração por Voz
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-rose-100">
+              <span class="text-xs font-bold text-slate-400 block uppercase">Letras</span>
+              <span id="statLettersCount" class="font-kids text-2xl font-bold text-rose-600">0</span>
+            </div>
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-rose-100">
+              <span class="text-xs font-bold text-slate-400 block uppercase">Sílabas</span>
+              <span id="statSyllablesCount" class="font-kids text-2xl font-bold text-indigo-600">0</span>
+            </div>
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-rose-100">
+              <span class="text-xs font-bold text-slate-400 block uppercase">Letra Inicial</span>
+              <span id="statFirstLetter" class="font-kids text-2xl font-bold text-emerald-600">-</span>
+            </div>
+            <div class="bg-white p-3 rounded-2xl shadow-sm border border-rose-100">
+              <span class="text-xs font-bold text-slate-400 block uppercase">Letra Final</span>
+              <span id="statLastLetter" class="font-kids text-2xl font-bold text-amber-600">-</span>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-rose-100 shadow-sm">
+            <h4 class="font-bold text-sm text-slate-700 uppercase tracking-wide mb-1 flex items-center gap-2">
+              <i class="fa-solid fa-wand-magic text-rose-500"></i> Desafio de Frase Criada pelo AlfaBot:
+            </h4>
+            <p id="statSentenceGenerated" class="text-slate-800 text-lg italic font-medium">"Aguardando análise..."</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rodapé da Área Interativa: Dica Pedagógica Fixa -->
+      <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span class="flex items-center gap-1.5 font-semibold">
+          <i class="fa-solid fa-lightbulb text-amber-400"></i>
+          Dica: A mediação do professor enriquece a relação entre a palavra falada e a tela!
+        </span>
+        <span class="font-mono text-slate-400">BNCC EF01LP / BNCC Computação</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= MODAL: GUIA DO PROFESSOR (BNCC & OFICINA PÓS-PALESTRA) ================= -->
+  <div id="teacherGuideModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl max-h-[90vh] overflow-y-auto space-y-5">
+      <div class="flex items-center justify-between border-b pb-3 border-slate-200">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <div>
+            <h3 class="font-kids text-2xl font-bold text-slate-800">Guia Pedagógico para a Oficina</h3>
+            <p class="text-xs text-slate-500">Como aplicar este jogo logo após a palestra formativa</p>
+          </div>
+        </div>
+        <button onclick="closeTeacherGuideModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-sm text-slate-700 leading-relaxed">
+        <div class="bg-indigo-50 border-l-4 border-indigo-600 p-4 rounded-r-xl">
+          <h4 class="font-bold text-indigo-900 text-base mb-1">Objetivo da Dinâmica em Sala:</h4>
+          <p>Superar o consumo passivo de telas demonstrado por <b>Virilio</b> e transformar a tecnologia em <b>inteligência coletiva (Lévy)</b> e autoria ativa através de mecânicas de jogos e mediação fonológica.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-base mb-2">Habilidades BNCC Trabalhadas:</h4>
+          <ul class="space-y-1.5 list-disc list-inside">
+            <li><b>(EF01LP05):</b> Reconhecer o sistema de escrita alfabética como representação dos sons da fala.</li>
+            <li><b>(EF01LP08):</b> Relacionar elementos sonoros (sílabas, rimas, aliterações) com sua representação gráfica.</li>
+            <li><b>(EF01LP02):</b> Escrever palavras com correspondência fonema-grafema.</li>
+            <li><b>BNCC Computação (Mundo Digital & Algoritmos):</b> Noção intuitiva de sequenciamento lógico, causa-efeito e engenharia de instruções (prompts).</li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-slate-900 text-base mb-2">Roteiro Sugerido (Duração: 30 a 45 minutos):</h4>
+          <ol class="space-y-2 list-decimal list-inside">
+            <li><b>Acolhimento com o AlfaBot (5 min):</b> Apresente o robô no projetor ou tela e mostre como ele "fala" ao clicar nos botões de áudio.</li>
+            <li><b>Fábrica de Sílabas em Duplas (15 min):</b> Alunos trabalham colaborativamente para testar combinações sonoras antes de clicar em verificar.</li>
+            <li><b>Roda do Prompt Mágico (15 min):</b> Os estudantes escolhem coletivamente os parâmetros e criam pequenas histórias rimadas, lendo em coro.</li>
+            <li><b>Fechamento Reflexivo (5 min):</b> O professor questiona: <i>"O robô inventa sozinho ou precisa das nossas ordens bem explicadas?"</i> (introdução ao conceito de algoritmo).</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="pt-2 text-right">
+        <button onclick="closeTeacherGuideModal()" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition">
+          Entendido! Retornar ao Jogo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript do Jogo -->
+  <script>
+    /* ================= ESTADO GLOBAL DO JOGO ================= */
+    let currentMode = 'syllables';
+    let starsCount = 0;
+    let voiceEnabled = true;
+
+    /* Sintetizador de Áudio Nativo Web Audio API para Efeitos Especiais */
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playBeepSound(type) {
+      if (!voiceEnabled) return;
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        const now = audioCtx.currentTime;
+        if (type === 'success') {
+          // Arpeggio alegre de vitória
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, now); // A4
+          osc.frequency.setValueAtTime(554.37, now + 0.08); // C#5
+          osc.frequency.setValueAtTime(659.25, now + 0.16); // E5
+          osc.frequency.setValueAtTime(880, now + 0.24); // A5
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'click') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(600, now);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.06);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        } else if (type === 'error') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.setValueAtTime(180, now + 0.1);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+          osc.start(now);
+          osc.stop(now + 0.3);
+        }
+      } catch (e) {
+        console.warn('AudioContext não iniciado:', e);
+      }
+    }
+
+    /* Leitura de Voz com a Web Speech API */
+    function speakText(text, pitch = 1.15, rate = 0.95) {
+      if (!voiceEnabled) return;
+      if (!('speechSynthesis' in window)) return;
+      
+      window.speechSynthesis.cancel(); // Para falas anteriores
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'pt-BR';
+      utterance.pitch = pitch; // Um pouco mais agudo/amigável para crianças
+      utterance.rate = rate; // Ritmo pausado didático
+
+      // Animação de fala no robô
+      utterance.onstart = () => {
+        animateBotTalking(true);
+      };
+      utterance.onend = () => {
+        animateBotTalking(false);
+      };
+      utterance.onerror = () => {
+        animateBotTalking(false);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function animateBotTalking(isTalking) {
+      const mouth = document.getElementById('botMouth');
+      const leftEye = document.getElementById('botEyeLeft');
+      const rightEye = document.getElementById('botEyeRight');
+      
+      if (isTalking) {
+        mouth.classList.remove('w-8', 'h-2');
+        mouth.classList.add('w-6', 'h-5', 'rounded-lg', 'animate-pulse');
+        leftEye.classList.add('scale-110');
+        rightEye.classList.add('scale-110');
+      } else {
+        mouth.classList.remove('w-6', 'h-5', 'rounded-lg', 'animate-pulse');
+        mouth.classList.add('w-8', 'h-2');
+        leftEye.classList.remove('scale-110');
+        rightEye.classList.remove('scale-110');
+      }
+    }
+
+    function setBotSpeech(message, speakNow = true) {
+      document.getElementById('botSpeechText').innerHTML = message;
+      if (speakNow) {
+        // Remove tags HTML para a fala
+        const cleanText = message.replace(/<[^>]*>?/gm, '');
+        speakText(cleanText);
+      }
+    }
+
+    function speakCurrentBotMessage() {
+      const msg = document.getElementById('botSpeechText').innerText;
+      speakText(msg);
+    }
+
+    function toggleAudioSpeech() {
+      voiceEnabled = !voiceEnabled;
+      const icon = document.getElementById('audioIcon');
+      if (voiceEnabled) {
+        icon.className = 'fa-solid fa-volume-high';
+        setBotSpeech('O som da voz foi ativado! Vamos continuar!', true);
+      } else {
+        window.speechSynthesis.cancel();
+        icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+      }
+    }
+
+    function addStars(num) {
+      starsCount += num;
+      document.getElementById('starScore').innerText = starsCount;
+      // Dispara confetes na tela
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 40,
+          spread: 60,
+          origin: { y: 0.7 }
+        });
+      }
+      playBeepSound('success');
+    }
+
+    /* Troca de Modos / Missões */
+    function switchMode(mode) {
+      currentMode = mode;
+      playBeepSound('click');
+
+      // Atualiza botões do menu lateral
+      ['syllables', 'promptMagic', 'rhymeDetective', 'exploreWord'].forEach(m => {
+        const btn = document.getElementById(`nav-${m}`);
+        const view = document.getElementById(`mode-${m}`);
+        if (m === mode) {
+          btn.className = "w-full py-3 px-4 rounded-2xl bg-indigo-600 text-white font-bold flex items-center justify-between text-left shadow-md transition transform active:scale-95";
+          view.classList.remove('hidden');
+          view.classList.add('pop-in');
+        } else {
+          btn.className = "w-full py-3 px-4 rounded-2xl bg-white hover:bg-indigo-50 border-2 border-indigo-200 text-slate-700 font-bold flex items-center justify-between text-left transition transform active:scale-95";
+          view.classList.add('hidden');
+          view.classList.remove('pop-in');
+        }
+      });
+
+      // Falas contextuais do AlfaBot para cada modo
+      if (mode === 'syllables') {
+        setBotSpeech('Bem-vindo à Fábrica de Sílabas! Escute o som e junte os pedacinhos certos!');
+      } else if (mode === 'promptMagic') {
+        setBotSpeech('Aqui é o Laboratório de IA! Escolha o herói, a ação e o lugar para criarmos uma história!');
+      } else if (mode === 'rhymeDetective') {
+        setBotSpeech('Modo Detetive ativado! Encontre a palavra que termina com o mesmo sonzinho!');
+      } else if (mode === 'exploreWord') {
+        setBotSpeech('Digite qualquer palavra que você queira estudar e eu vou desmontá-la para você!');
+      }
+    }
+
+    /* ================= DADOS E LÓGICA DO MODO 1: SÍLABAS ================= */
+    const syllableChallenges = [
+      {
+        word: "GATO",
+        emoji: "🐱",
+        hint: "Animal doméstico fofo que gosta de miar e subir em telhados.",
+        correctSyllables: ["GA", "TO"],
+        distractors: ["BO", "LA", "PI"]
+      },
+      {
+        word: "PIPOCA",
+        emoji: "🍿",
+        hint: "Milho que estoura na panela bem quentinho para o cinema!",
+        correctSyllables: ["PI", "PO", "CA"],
+        distractors: ["TE", "LU", "VA"]
+      },
+      {
+        word: "CORUJA",
+        emoji: "🦉",
+        hint: "Ave de olhos grandes que simboliza a sabedoria dos professores.",
+        correctSyllables: ["CO", "RU", "JA"],
+        distractors: ["MA", "DO", "SA"]
+      },
+      {
+        word: "BONECA",
+        emoji: "🪆",
+        hint: "Brinquedo clássico adorado em várias brincadeiras de infância.",
+        correctSyllables: ["BO", "NE", "CA"],
+        distractors: ["TA", "FI", "LO"]
+      },
+      {
+        word: "ESCOLA",
+        emoji: "🏫",
+        hint: "Lugar de amizade, descobertas, alfabetização e tecnologia!",
+        correctSyllables: ["ES", "CO", "LA"],
+        distractors: ["PA", "TE", "VI"]
+      },
+      {
+        word: "FOGUETE",
+        emoji: "🚀",
+        hint: "Veículo que voa em direção às estrelas e planetas distantes.",
+        correctSyllables: ["FO", "GUE", "TE"],
+        distractors: ["RA", "BI", "NU"]
+      }
+    ];
+
+    let currentSyllableIndex = 0;
+    let currentSyllableGame = null;
+    let selectedSyllables = [];
+
+    function loadSyllableChallenge(index) {
+      currentSyllableIndex = index % syllableChallenges.length;
+      currentSyllableGame = syllableChallenges[currentSyllableIndex];
+      selectedSyllables = [];
+
+      document.getElementById('syllableProgressBadge').innerText = `Desafio ${currentSyllableIndex + 1} de ${syllableChallenges.length}`;
+      document.getElementById('targetEmoji').innerText = currentSyllableGame.emoji;
+      document.getElementById('targetHint').innerText = `"${currentSyllableGame.hint}"`;
+
+      renderDropZone();
+
+      // Mistura sílabas corretas com distratores
+      const allSyllables = [...currentSyllableGame.correctSyllables, ...currentSyllableGame.distractors];
+      allSyllables.sort(() => Math.random() - 0.5);
+
+      const bank = document.getElementById('syllablesBank');
+      bank.innerHTML = '';
+      allSyllables.forEach(syl => {
+        const btn = document.createElement('button');
+        btn.className = 'syllable-tile font-kids text-2xl font-bold bg-white text-indigo-800 border-2 border-indigo-200 px-5 py-3 rounded-2xl shadow-sm hover:border-indigo-400 hover:bg-indigo-50';
+        btn.innerText = syl;
+        btn.onclick = () => selectSyllable(syl, btn);
+        bank.appendChild(btn);
+      });
+    }
+
+    function selectSyllable(syl, btnElement) {
+      playBeepSound('click');
+      selectedSyllables.push(syl);
+      speakText(syl, 1.2, 0.9);
+      btnElement.classList.add('opacity-40', 'pointer-events-none');
+      renderDropZone();
+    }
+
+    function renderDropZone() {
+      const zone = document.getElementById('dropZone');
+      zone.innerHTML = '';
+      if (selectedSyllables.length === 0) {
+        zone.innerHTML = '<span class="text-slate-400 font-semibold text-sm">Clique nas sílabas abaixo na ordem certa!</span>';
+        return;
+      }
+
+      selectedSyllables.forEach((syl, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'font-kids text-2xl font-bold bg-indigo-600 text-white px-5 py-2.5 rounded-2xl shadow-md flex items-center gap-2 pop-in';
+        chip.innerHTML = `${syl} <span class="text-xs text-indigo-300 font-sans cursor-pointer hover:text-white" title="Remover">✕</span>`;
+        chip.onclick = () => removeSyllableAt(idx);
+        zone.appendChild(chip);
+      });
+    }
+
+    function removeSyllableAt(index) {
+      playBeepSound('click');
+      selectedSyllables.splice(index, 1);
+      // Recarrega botões ativos
+      reloadBankAvailability();
+      renderDropZone();
+    }
+
+    function reloadBankAvailability() {
+      const bankButtons = document.querySelectorAll('#syllablesBank button');
+      const tempSelected = [...selectedSyllables];
+      bankButtons.forEach(btn => {
+        const syl = btn.innerText;
+        const foundIdx = tempSelected.indexOf(syl);
+        if (foundIdx > -1) {
+          btn.classList.add('opacity-40', 'pointer-events-none');
+          tempSelected.splice(foundIdx, 1);
+        } else {
+          btn.classList.remove('opacity-40', 'pointer-events-none');
+        }
+      });
+    }
+
+    function resetCurrentSyllable() {
+      playBeepSound('click');
+      selectedSyllables = [];
+      renderDropZone();
+      reloadBankAvailability();
+    }
+
+    function checkSyllableAnswer() {
+      const formedWord = selectedSyllables.join('');
+      const target = currentSyllableGame.word;
+
+      if (formedWord === target) {
+        setBotSpeech(`Parabéns! Você montou a palavra <b>${target}</b> corretamente! Ganhou 2 estrelas!`);
+        addStars(2);
+        speakWord(target);
+        setTimeout(() => {
+          loadSyllableChallenge(currentSyllableIndex + 1);
+        }, 2200);
+      } else {
+        playBeepSound('error');
+        setBotSpeech(`Você montou <i>${formedWord || '...'}</i>. Vamos tentar de novo? Dica: ${currentSyllableGame.hint}`);
+      }
+    }
+
+    function speakWord(w) {
+      speakText(w, 1.1, 0.85);
+    }
+
+    /* ================= DADOS E LÓGICA DO MODO 2: PROMPT MÁGICO ================= */
+    function updatePromptPreview() {
+      const hero = document.getElementById('promptHero').value;
+      const action = document.getElementById('promptAction').value;
+      const place = document.getElementById('promptPlace').value;
+      const fullPrompt = `"${hero} ${action} ${place}"`;
+      document.getElementById('promptPreviewText').innerText = fullPrompt;
+      playBeepSound('click');
+    }
+
+    function generateAIPromptStory() {
+      playBeepSound('click');
+      const hero = document.getElementById('promptHero').value;
+      const action = document.getElementById('promptAction').value;
+      const place = document.getElementById('promptPlace').value;
+
+      // Animação de processamento de IA
+      setBotSpeech("Processando seu prompt com a IA do AlfaBot... Criando rimas e magia!", true);
+      document.getElementById('storyTitle').innerText = "A IA está escrevendo...";
+      document.getElementById('storyBody').innerText = "Carregando neurônios digitais...";
+
+      setTimeout(() => {
+        const storiesMap = {
+          heroName: hero.split(' ')[1] || 'Amigo',
+          body: `Era uma vez ${hero.toLowerCase()}. Todos os dias, ele ${action.toLowerCase()} ${place} Com muita alegria, descobriu que cada letra tem seu som e que ler é o maior superpoder do mundo!`
+        };
+
+        const titleText = `A Grande Aventura: ${hero}`;
+        document.getElementById('storyTitle').innerText = titleText;
+        document.getElementById('storyBody').innerText = storiesMap.body;
+        document.getElementById('storyVisualBadge').innerText = hero.includes('robô') ? '🤖✨' : (hero.includes('gatinha') ? '🐱🚀' : (hero.includes('dinossauro') ? '🦖🌳' : '🐒💻'));
+
+        const readBtn = document.getElementById('readStoryBtn');
+        readBtn.classList.remove('hidden');
+
+        setBotSpeech(`História criada com sucesso a partir do seu comando! Clique no botão de áudio para ler comigo!`);
+        addStars(3);
+      }, 900);
+    }
+
+    function readFullStory() {
+      const story = document.getElementById('storyBody').innerText;
+      speakText(story, 1.1, 0.9);
+    }
+
+    /* ================= DADOS E LÓGICA DO MODO 3: DETETIVE DE RIMAS ================= */
+    const rhymeLevels = [
+      {
+        baseWord: "LEÃO",
+        baseEmoji: "🦁",
+        correct: "CORAÇÃO",
+        correctEmoji: "❤️",
+        options: [
+          { word: "BOLA", emoji: "⚽" },
+          { word: "CORAÇÃO", emoji: "❤️" },
+          { word: "SAPATO", emoji: "👞" }
+        ]
+      },
+      {
+        baseWord: "PANELA",
+        baseEmoji: "🍳",
+        correct: "JANELA",
+        correctEmoji: "🪟",
+        options: [
+          { word: "JANELA", emoji: "🪟" },
+          { word: "LIVRO", emoji: "📖" },
+          { word: "CANETA", emoji: "🖊️" }
+        ]
+      },
+      {
+        baseWord: "PATO",
+        baseEmoji: "🦆",
+        correct: "GATO",
+        correctEmoji: "🐈",
+        options: [
+          { word: "CACHORRO", emoji: "🐕" },
+          { word: "SOL", emoji: "☀️" },
+          { word: "GATO", emoji: "🐈" }
+        ]
+      },
+      {
+        baseWord: "CASTELO",
+        baseEmoji: "🏰",
+        correct: "AMARELO",
+        correctEmoji: "💛",
+        options: [
+          { word: "AMARELO", emoji: "💛" },
+          { word: "VERDE", emoji: "💚" },
+          { word: "ÁRVORE", emoji: "🌳" }
+        ]
+      },
+      {
+        baseWord: "FOGUETE",
+        baseEmoji: "🚀",
+        correct: "SORVETE",
+        correctEmoji: "🍦",
+        options: [
+          { word: "CASA", emoji: "🏠" },
+          { word: "SORVETE", emoji: "🍦" },
+          { word: "VENTO", emoji: "💨" }
+        ]
+      }
+    ];
+
+    let currentRhymeIndex = 0;
+    let currentRhymeGame = null;
+
+    function loadRhymeLevel(index) {
+      currentRhymeIndex = index % rhymeLevels.length;
+      currentRhymeGame = rhymeLevels[currentRhymeIndex];
+
+      document.getElementById('rhymeProgressBadge').innerText = `Nível ${currentRhymeIndex + 1} de ${rhymeLevels.length}`;
+      document.getElementById('rhymeBaseEmoji').innerText = currentRhymeGame.baseEmoji;
+      document.getElementById('rhymeBaseWord').innerText = currentRhymeGame.baseWord;
+      document.getElementById('rhymeFeedback').innerHTML = '';
+
+      const container = document.getElementById('rhymeOptionsContainer');
+      container.innerHTML = '';
+
+      currentRhymeGame.options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'bg-white hover:bg-emerald-50 border-2 border-emerald-200 hover:border-emerald-500 rounded-3xl p-5 text-center shadow-sm transition transform hover:-translate-y-1 active:scale-95 flex flex-col items-center justify-center';
+        btn.innerHTML = `
+          <span class="text-5xl mb-2">${opt.emoji}</span>
+          <span class="text-2xl font-bold text-slate-800">${opt.word}</span>
+        `;
+        btn.onclick = () => checkRhymeAnswer(opt.word);
+        container.appendChild(btn);
+      });
+    }
+
+    function checkRhymeAnswer(selectedWord) {
+      const fb = document.getElementById('rhymeFeedback');
+      if (selectedWord === currentRhymeGame.correct) {
+        fb.innerHTML = `<span class="text-emerald-600 font-kids text-xl"><i class="fa-solid fa-circle-check"></i> Isso mesmo! <b>${currentRhymeGame.baseWord}</b> rima com <b>${selectedWord}</b>!</span>`;
+        setBotSpeech(`Excelente ouvido musical! ${currentRhymeGame.baseWord} rima com ${selectedWord}!`);
+        addStars(2);
+        setTimeout(() => {
+          loadRhymeLevel(currentRhymeIndex + 1);
+        }, 1800);
+      } else {
+        playBeepSound('error');
+        fb.innerHTML = `<span class="text-rose-500 font-kids text-xl"><i class="fa-solid fa-circle-xmark"></i> Quase! Tente escutar o sonzinho final de <b>${currentRhymeGame.baseWord}</b> de novo.</span>`;
+        setBotSpeech(`Não foi dessa vez. Escute o som final de ${currentRhymeGame.baseWord} e tente outra opção!`);
+      }
+    }
+
+    /* ================= DADOS E LÓGICA DO MODO 4: LABORATÓRIO DA PALAVRA ================= */
+    let lastAnalyzedWord = '';
+
+    function analyzeCustomWord() {
+      const input = document.getElementById('customWordInput');
+      const raw = input.value.trim().toUpperCase();
+
+      if (!raw) {
+        setBotSpeech('Digite uma palavra antes para eu analisar!');
+        return;
+      }
+
+      playBeepSound('click');
+      lastAnalyzedWord = raw;
+
+      // Análise de letras e sílabas simplificada
+      const lettersCount = raw.length;
+      const firstLetter = raw.charAt(0);
+      const lastLetter = raw.charAt(raw.length - 1);
+
+      // Estimativa fonológica de sílabas para pt-BR
+      const vowels = raw.match(/[AEIOUÁÉÍÓÚÃÕÂÊÔ]/gi) || [];
+      const estimatedSyllables = Math.max(1, vowels.length);
+
+      document.getElementById('analyzedWordTitle').innerText = raw;
+      document.getElementById('statLettersCount').innerText = lettersCount;
+      document.getElementById('statSyllablesCount').innerText = estimatedSyllables;
+      document.getElementById('statFirstLetter').innerText = firstLetter;
+      document.getElementById('statLastLetter').innerText = lastLetter;
+
+      // Mini frase contextual gerada pelo AlfaBot
+      const sentences = [
+        `"No laboratório da escola, a palavra ${raw} brilhou cheia de curiosidade!"`,
+        `"Quem aprende a ler ${raw} descobre um portal para um novo universo!"`,
+        `"O robô AlfaBot guardou a palavra ${raw} em seu banco de memórias felizes!"`
+      ];
+      const randomSentence = sentences[Math.floor(Math.random() * sentences.length)];
+      document.getElementById('statSentenceGenerated').innerText = randomSentence;
+
+      const card = document.getElementById('wordAnalysisCard');
+      card.classList.remove('hidden');
+      card.classList.add('pop-in');
+
+      setBotSpeech(`Analisei a palavra ${raw}! Ela tem ${lettersCount} letras e começa com a letra ${firstLetter}!`);
+      addStars(1);
+    }
+
+    function speakAnalyzedWord() {
+      if (!lastAnalyzedWord) return;
+      // Soletração pausada
+      const spelled = lastAnalyzedWord.split('').join(' . ');
+      speakText(`A palavra é: ${lastAnalyzedWord}. Letra por letra: ${spelled}.`, 1.1, 0.85);
+    }
+
+    /* Modais */
+    function openTeacherGuideModal() {
+      playBeepSound('click');
+      document.getElementById('teacherGuideModal').classList.remove('hidden');
+    }
+
+    function closeTeacherGuideModal() {
+      playBeepSound('click');
+      document.getElementById('teacherGuideModal').classList.add('hidden');
+    }
+
+    /* Inicialização */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSyllableChallenge(0);
+      loadRhymeLevel(0);
+      updatePromptPreview();
+    });
+  </script>
+</body>
+</html>
